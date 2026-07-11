@@ -17,19 +17,49 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-Explain your design in plain language.
+Our music recommendation pipeline transforms qualitative attributes and raw audio measurements into structured, comparative predictions through an explicit, step-by-step mathematical recipe.
 
-Some prompts to answer:
+### 🛠️ Object Attributes & Feature Map
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+*   **Song Object Fields:**
+    *   `id` (int): Unique primary key database index.
+    *   `title` / `artist` (str): Informational string metadata descriptive fields.
+    *   `genre` / `mood` (str): Categorical text descriptors used for discrete match evaluations.
+    *   `energy` (float): Bounded continuous metric ($0.0$ to $1.0$) representing acoustic intensity.
+    *   `tempo_bpm` (float): Rhythmic speed tracking index measured in beats per minute.
+    *   `acousticness` (float): Continuous dimension tracking organic vs. synthetic instrumentation properties ($0.0$ to $1.0$).
 
-You can include a simple diagram or bullet list if helpful.
+*   **UserProfile Object Fields:**
+    *   `favorite_genre` (str): Anchor style string constraint.
+    *   `favorite_mood` (str): Target subjective emotional framework description.
+    *   `target_energy` (float): Ideal baseline numerical pacer value.
+    *   `likes_acoustic` (bool): Categorical toggle verifying instrumentation preferences.
 
 ---
+
+### 🧠 The Finalized Algorithm Recipe
+
+To compute personalized recommendations, our system evaluates individual tracks using a multi-layered scoring matrix before compiling the global output array.
+
+1.  **Categorical Match Filters:**
+    *   **Genre Core Weight (`+3.0` points):** Acts as the primary structural boundary anchor to keep tracks closely aligned with a user's explicit style choices.
+    *   **Mood Vibe Weight (`+2.0` points):** Provides emotional context flexibility across similar auditory landscapes.
+    *   **Acoustic Profile Weight (`+1.0` point):** A binary condition reward if a track matches the user's `likes_acoustic` boolean value.
+
+2.  **Continuous Value Scaling (The Proximity Penalty):**
+    To reward tracks whose acoustic signatures sit closest to the user's explicit preference baseline rather than simply favoring high or low boundaries, we enforce an **Absolute Delta Proximity Penalty**:
+    $$Penalty = -|Song_{\text{energy}} - User_{\text{target\_energy}}| \times 4.0$$
+    The further a song's structural intensity drifts from the user's baseline target, the larger the negative deduction applied to its total evaluation score.
+
+3.  **The Global Ranking Rule:**
+    Once every candidate song in the CSV pool has been individually scored, the engine applies its sorting rule: it ranks the entire track array in descending order based on total points and trims the matrix to return the top $k$ choices.
+
+---
+
+### ⚠️ Expected Systemic Biases & Limitations
+
+*   **Taxonomic Filtering Trap:** Because the algorithm uses rigid string checking for genres and moods, it over-prioritizes literal labels. An excellent "chill ambient" track will completely miss the `+3.0` genre bonus if a user's favorite genre is explicitly set to "lofi," artificially deflating high-vibe tracks due to human naming discrepancies.
+*   **The Homogeneity Filter Bubble:** The heavy mathematical weights placed on matching existing tags and tight energy deltas mean the system is structurally optimized to reproduce a user's past taste profile. This system will struggle to surprise a user, minimizing discovery or cross-genre experimentation.
 
 ## Getting Started
 
@@ -71,12 +101,22 @@ You can add more tests in `tests/test_recommender.py`.
 Paste a sample of your recommender's output here as a text block so a reader can see what it produces:
 
 ```
-# e.g.:
-# User profile: genre=indie, mood=chill, energy=low
-# Recommendations:
-#   1. ...
-#   2. ...
-#   3. ...
+Top recommendations:
+
+1. Library Rain - Score: 5.00
+Because: genre match (+3.0) | mood match (+2.0) | energy affinity match (-0.00 penalty)
+
+2. Midnight Coding - Score: 4.72
+Because: genre match (+3.0) | mood match (+2.0) | energy affinity match (-0.28 penalty)
+
+3. Focus Flow - Score: 2.80
+Because: genre match (+3.0) | energy affinity match (-0.20 penalty)
+
+4. Spacewalk Thoughts - Score: 1.72
+Because: mood match (+2.0) | energy affinity match (-0.28 penalty)
+
+5. Afro Beats & Chill - Score: 0.80
+Because: mood match (+2.0) | energy drift deviation (-1.20 penalty)
 ```
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or demo video link here -->
