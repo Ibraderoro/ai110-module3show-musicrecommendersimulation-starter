@@ -1,5 +1,5 @@
 import csv
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Any
 from dataclasses import dataclass
 
 @dataclass
@@ -20,7 +20,7 @@ class Song:
     acousticness: float
 
     @classmethod
-    def from_dict(cls, d: Dict) -> 'Song':
+    def from_dict(cls, d: Dict[str, Any]) -> 'Song':
         """Helper method to convert a standard data dict into a formal Song object."""
         return cls(
             id=int(d["id"]),
@@ -56,26 +56,25 @@ class Recommender:
 
     def recommend(self, user: UserProfile, k: int = 5) -> List[Song]:
         """Calculates scores using OOP constructs, ranks, and filters top items."""
-        # Convert the OOP UserProfile into a standard dictionary format for score logic uniformity
-        user_prefs = {
+        user_prefs: Dict[str, Any] = {
             "genre": user.favorite_genre,
             "mood": user.favorite_mood,
             "energy": user.target_energy
         }
         
-        scored_songs = []
+        # Explicitly typing the list forces Pylance to understand the tuple indices
+        scored_songs: List[Tuple[Song, float]] = []
         for song in self.songs:
-            # Safely pass the song object attributes as a dictionary map
             score, _ = score_song(user_prefs, song.__dict__)
             scored_songs.append((song, score))
             
-        # Sort in-place by score descending
+        # Pylance now explicitly tracks x[1] as a float primitive, clearing the warning
         scored_songs.sort(key=lambda x: x[1], reverse=True)
         return [item[0] for item in scored_songs[:k]]
 
     def explain_recommendation(self, user: UserProfile, song: Song) -> str:
         """Outputs an audit string detailing why a track matched a profile setup."""
-        user_prefs = {
+        user_prefs: Dict[str, Any] = {
             "genre": user.favorite_genre,
             "mood": user.favorite_mood,
             "energy": user.target_energy
@@ -83,14 +82,15 @@ class Recommender:
         _, reasons = score_song(user_prefs, song.__dict__)
         return f"Recommended because: {', '.join(reasons)}."
 
-def load_songs(csv_path: str) -> List[Dict]:
+def load_songs(csv_path: str) -> List[Dict[str, Any]]:
     """Loads songs from a CSV file, converting numeric strings into standard primitives."""
-    songs_pool = []
+    songs_pool: List[Dict[str, Any]] = []
     try:
         with open(csv_path, mode='r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                songs_pool.append({
+                # Explicitly type the local song entry to help static checkers
+                song_entry: Dict[str, Any] = {
                     "id": int(row["id"]),
                     "title": row["title"],
                     "artist": row["artist"],
@@ -101,15 +101,16 @@ def load_songs(csv_path: str) -> List[Dict]:
                     "valence": float(row["valence"]),
                     "danceability": float(row["danceability"]),
                     "acousticness": float(row["acousticness"])
-                })
+                }
+                songs_pool.append(song_entry)
     except Exception as e:
         print(f"Error parsing local CSV dataset path {csv_path}: {e}")
     return songs_pool
 
-def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
+def score_song(user_prefs: Dict[str, Any], song: Dict[str, Any]) -> Tuple[float, List[str]]:
     """Scores a single song against user preferences. Expected format: (score, reasons)"""
     score = 0.0
-    reasons = []
+    reasons: List[str] = []
 
     # 1. Categorical Genre Match evaluation (Weight: +3.0)
     if song["genre"] == user_prefs["genre"].strip().lower():
@@ -133,9 +134,13 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
 
     return round(score, 2), reasons
 
-def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
+def recommend_songs(
+    user_prefs: Dict[str, Any],
+    songs: List[Dict[str, Any]],
+    k: int = 5
+) -> List[Tuple[Dict[str, Any], float, str]]:
     """Functional implementation of the recommendation logic required by src/main.py."""
-    processed_recommendations = []
+    processed_recommendations: List[Tuple[Dict[str, Any], float, str]] = []
     
     for song_dict in songs:
         score, reasons = score_song(user_prefs, song_dict)
@@ -143,5 +148,9 @@ def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tup
         processed_recommendations.append((song_dict, score, explanation))
         
     # Non-destructive sorting paradigm using sorted()
-    sorted_recommendations = sorted(processed_recommendations, key=lambda x: x[1], reverse=True)
+    sorted_recommendations: List[Tuple[Dict[str, Any], float, str]] = sorted(
+        processed_recommendations,
+        key=lambda x: x[1],
+        reverse=True,
+    )
     return sorted_recommendations[:k]
