@@ -1,12 +1,10 @@
 # AI Interactions Log
 
-> **Stretch features only.** Only fill in the sections that apply to stretch features you attempted. If you did not attempt a stretch feature, leave its section blank or delete it. This file is not required for the core project.
+This document records the design patterns, automated optimization workflows, and custom algorithmic features developed during the module 3 recommender system simulation.
 
 ---
 
 ## Agentic Workflow (SF8)
-
-> Document your experience using an AI agent (e.g., Cursor Agent, Claude, Copilot) to make multi-step changes autonomously.
 
 **What task did you give the agent?**
 
@@ -36,8 +34,6 @@ Resolve static-analysis Pylance warnings (`UnknownMemberType` and sorting lambda
 ---
 
 ## Design Pattern (SF10)
-
-> Document how AI helped you choose or implement a design pattern.
 
 **Which design pattern did you use?**
 

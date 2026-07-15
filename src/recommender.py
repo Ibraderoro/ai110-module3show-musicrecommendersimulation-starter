@@ -45,6 +45,9 @@ class UserProfile:
     favorite_mood: str
     target_energy: float
     likes_acoustic: bool
+    target_valence: float = 0.5         # Advanced feature default
+    target_danceability: float = 0.5    # Advanced feature default
+    target_tempo: float = 100.0         # Advanced feature default
 
 class Recommender:
     """
@@ -59,16 +62,18 @@ class Recommender:
         user_prefs: Dict[str, Any] = {
             "genre": user.favorite_genre,
             "mood": user.favorite_mood,
-            "energy": user.target_energy
+            "energy": user.target_energy,
+            "valence": user.target_valence,
+            "danceability": user.target_danceability,
+            "tempo": user.target_tempo,
+            "likes_acoustic": user.likes_acoustic
         }
         
-        # Explicitly typing the list forces Pylance to understand the tuple indices
         scored_songs: List[Tuple[Song, float]] = []
         for song in self.songs:
             score, _ = score_song(user_prefs, song.__dict__)
             scored_songs.append((song, score))
             
-        # Pylance now explicitly tracks x[1] as a float primitive, clearing the warning
         scored_songs.sort(key=lambda x: x[1], reverse=True)
         return [item[0] for item in scored_songs[:k]]
 
@@ -77,7 +82,11 @@ class Recommender:
         user_prefs: Dict[str, Any] = {
             "genre": user.favorite_genre,
             "mood": user.favorite_mood,
-            "energy": user.target_energy
+            "energy": user.target_energy,
+            "valence": user.target_valence,
+            "danceability": user.target_danceability,
+            "tempo": user.target_tempo,
+            "likes_acoustic": user.likes_acoustic
         }
         _, reasons = score_song(user_prefs, song.__dict__)
         return f"Recommended because: {', '.join(reasons)}."
@@ -89,7 +98,6 @@ def load_songs(csv_path: str) -> List[Dict[str, Any]]:
         with open(csv_path, mode='r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                # Explicitly type the local song entry to help static checkers
                 song_entry: Dict[str, Any] = {
                     "id": int(row["id"]),
                     "title": row["title"],
@@ -114,7 +122,7 @@ def score_song(
 ) -> Tuple[float, List[str]]:
     """
     Scores a single song against user preferences dynamically based on selected strategy.
-    Strategies available: "balanced", "acoustic", "strict_genre"
+    Evaluates 5+ complex features including valence, danceability, and tempo.
     """
     score = 0.0
     reasons: List[str] = []
@@ -122,12 +130,10 @@ def score_song(
     # 1. Categorical Genre Match (Variable Weight based on strategy)
     genre_match = song["genre"] == user_prefs["genre"].strip().lower()
     if genre_match:
-        # Strict genre mode values genre highly, while acoustic mode shifts weight away
         weight = 5.0 if strategy == "strict_genre" else (1.5 if strategy == "acoustic" else 3.0)
         score += weight
         reasons.append(f"genre match (+{weight:.1f})")
     elif strategy == "strict_genre":
-        # Strict genre mode aggressively filters non-matching styles out
         score -= 50.0
         reasons.append("genre mismatch lockout (-50.0)")
 
@@ -142,15 +148,39 @@ def score_song(
     energy_penalty = energy_delta * 4.0
     score -= energy_penalty
     if energy_delta <= 0.15:
-        reasons.append(f"energy affinity match (-{energy_penalty:.2f} penalty)")
+        reasons.append(f"energy match (-{energy_penalty:.2f} penalty)")
     else:
-        reasons.append(f"energy drift deviation (-{energy_penalty:.2f} penalty)")
+        reasons.append(f"energy drift (-{energy_penalty:.2f} penalty)")
 
-    # 4. Strategy-Specific Features
+    # 4. Advanced Continuous Feature matching (Challenge 1)
+    # A. Valence Proximity (Weight: 2.0 scale factor)
+    target_valence = user_prefs.get("valence", 0.5)
+    valence_delta = abs(song["valence"] - target_valence)
+    valence_penalty = valence_delta * 2.0
+    score -= valence_penalty
+    if valence_delta <= 0.15:
+        reasons.append(f"valence fit (-{valence_penalty:.2f} penalty)")
+
+    # B. Danceability Proximity (Weight: 2.0 scale factor)
+    target_dance = user_prefs.get("danceability", 0.5)
+    dance_delta = abs(song["danceability"] - target_dance)
+    dance_penalty = dance_delta * 2.0
+    score -= dance_penalty
+    if dance_delta <= 0.15:
+        reasons.append(f"groove fit (-{dance_penalty:.2f} penalty)")
+
+    # C. Tempo Proximity (Normalized to a 0.0 - 1.0 scale, max difference of 100 BPM)
+    target_tempo = user_prefs.get("tempo", 100.0)
+    tempo_delta = abs(song["tempo_bpm"] - target_tempo)
+    # Normalize penalty: (BPM difference / 100) * 2.0 weight
+    tempo_penalty = min((tempo_delta / 100.0) * 2.0, 2.0)
+    score -= tempo_penalty
+    if tempo_delta <= 15.0:
+        reasons.append(f"tempo pace fit (-{tempo_penalty:.2f} penalty)")
+
+    # 5. Strategy-Specific Features (Acoustic Mode)
     if strategy == "acoustic":
-        # Strategy exclusive: Evaluate matches on the organic acousticness primitive
         user_likes_acoustic = user_prefs.get("likes_acoustic", False)
-        # Match condition: user likes acoustic and song acousticness >= 0.5, or vice-versa
         song_is_acoustic = song.get("acousticness", 0.0) >= 0.5
         if user_likes_acoustic == song_is_acoustic:
             score += 3.0
@@ -168,19 +198,16 @@ def recommend_songs(
     strategy: str = "balanced"
 ) -> List[Tuple[Dict[str, Any], float, str]]:
     """Functional implementation of recommendation logic with active strategy and fairness loops."""
-    # 1. Calculate base scoring with chosen strategy
     raw_scored_pool: List[Tuple[Dict[str, Any], float, List[str]]] = []
     for song_dict in songs:
         score, reasons = score_song(user_prefs, song_dict, strategy=strategy)
         raw_scored_pool.append((song_dict, score, list(reasons)))
 
-    # Sort primarily by baseline score 
     raw_scored_pool.sort(key=lambda x: x[1], reverse=True)
 
     final_recommendations: List[Tuple[Dict[str, Any], float, str]] = []
     seen_artists: Dict[str, int] = {}
 
-    # 2. Apply Dynamic Artist Diversity Penalty
     for song_dict, baseline_score, reasons in raw_scored_pool:
         artist = song_dict["artist"].strip().lower()
         
@@ -196,7 +223,6 @@ def recommend_songs(
         explanation = " | ".join(reasons) if reasons else "baseline catalog"
         final_recommendations.append((song_dict, adjusted_score, explanation))
 
-    # 3. Final structural sort
     sorted_recommendations: List[Tuple[Dict[str, Any], float, str]] = sorted(
         final_recommendations,
         key=lambda x: x[1],
