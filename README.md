@@ -1,17 +1,7 @@
-# 🎵 Music Recommender Simulation
+# 🎵 VibePulse Music Recommender Simulation
 
 ## Project Summary
-
-In this project you will build and explain a small music recommender system.
-
-Your goal is to:
-
-- Represent songs and a user "taste profile" as data
-- Design a scoring rule that turns that data into recommendations
-- Evaluate what your system gets right and wrong
-- Reflect on how this mirrors real world AI recommenders
-
-Replace this paragraph with your own summary of what your version does.
+VibePulse is a content-based music recommendation engine designed to demonstrate how deterministic mathematical formulas and discrete sorting logic shape cultural discovery. By ingestion of a flat database catalog, this system parses qualitative textual classifications alongside continuous acoustic feature measurements to construct a highly personalized discovery queue. Going beyond basic static text matching, this implementation integrates an active **Dynamic Artist Diversity Penalty** to mitigate echo chambers, rendering the final audit breakdown within a beautifully structured command-line dashboard table.
 
 ---
 
@@ -25,9 +15,9 @@ Our music recommendation pipeline transforms qualitative attributes and raw audi
     *   `id` (int): Unique primary key database index.
     *   `title` / `artist` (str): Informational string metadata descriptive fields.
     *   `genre` / `mood` (str): Categorical text descriptors used for discrete match evaluations.
-    *   `energy` (float): Bounded continuous metric ($0.0$ to $1.0$) representing acoustic intensity.
+    *   `energy` (float): Bounded continuous metric (0.0 to 1.0) representing acoustic intensity.
     *   `tempo_bpm` (float): Rhythmic speed tracking index measured in beats per minute.
-    *   `acousticness` (float): Continuous dimension tracking organic vs. synthetic instrumentation properties ($0.0$ to $1.0$).
+    *   `acousticness` (float): Continuous dimension tracking organic vs. synthetic instrumentation properties (0.0 to 1.0).
 
 *   **UserProfile Object Fields:**
     *   `favorite_genre` (str): Anchor style string constraint.
@@ -42,17 +32,21 @@ Our music recommendation pipeline transforms qualitative attributes and raw audi
 To compute personalized recommendations, our system evaluates individual tracks using a multi-layered scoring matrix before compiling the global output array.
 
 1.  **Categorical Match Filters:**
-    *   **Genre Core Weight (`+3.0` points):** Acts as the primary structural boundary anchor to keep tracks closely aligned with a user's explicit style choices.
-    *   **Mood Vibe Weight (`+2.0` points):** Provides emotional context flexibility across similar auditory landscapes.
-    *   **Acoustic Profile Weight (`+1.0` point):** A binary condition reward if a track matches the user's `likes_acoustic` boolean value.
+    *   **Genre Core Weight (+3.0 points):** Acts as the primary structural boundary anchor to keep tracks closely aligned with a user's explicit style choices.
+    *   **Mood Vibe Weight (+2.0 points):** Provides emotional context flexibility across similar auditory landscapes.
 
 2.  **Continuous Value Scaling (The Proximity Penalty):**
     To reward tracks whose acoustic signatures sit closest to the user's explicit preference baseline rather than simply favoring high or low boundaries, we enforce an **Absolute Delta Proximity Penalty**:
-    $$Penalty = -|Song_{\text{energy}} - User_{\text{target\_energy}}| \times 4.0$$
+    $$Penalty = -\vert{}Song_{\text{energy}} - User_{\text{target\_energy}}\vert{} \times 4.0$$
     The further a song's structural intensity drifts from the user's baseline target, the larger the negative deduction applied to its total evaluation score.
 
-3.  **The Global Ranking Rule:**
-    Once every candidate song in the CSV pool has been individually scored, the engine applies its sorting rule: it ranks the entire track array in descending order based on total points and trims the matrix to return the top $k$ choices.
+3.  **Active Diversity & Fairness Filter (Advanced Extension):**
+    To prevent a single popular artist from monopolizing the entire feed, the ranking engine evaluates selections sequentially. If an artist's name appears more than once within the compiled pool, a compounding saturation penalty is applied:
+    $$Fairness\_Penalty = -1.50 \times (Artist_{\text{count}} - 1)$$
+    This lowers the score of duplicate artists, pulling less visible creators further up the feed.
+
+4.  **The Global Ranking Rule:**
+    Once every candidate song in the CSV pool has been individually scored and adjusted for fairness, the engine applies its sorting rule: it ranks the entire track array in descending order based on total points and trims the matrix to return the top $k$ choices inside an automated ASCII layout grid.
 
 ---
 
@@ -81,7 +75,7 @@ pip install -r requirements.txt
 3. Run the app:
 
 ```bash
-python -m src.main
+python3 -m src.main
 ```
 
 ### Running Tests
@@ -89,7 +83,7 @@ python -m src.main
 Run the starter tests with:
 
 ```bash
-pytest
+python3 -m pytest
 ```
 
 You can add more tests in `tests/test_recommender.py`.
@@ -98,25 +92,56 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Sample Recommendation Output
 
-Paste a sample of your recommender's output here as a text block so a reader can see what it produces:
+Below is the live terminal display generated by our custom ASCII formatting engine, showing the content scoring and artist saturation tracking running simultaneously:
 
 ```
-Top recommendations:
+=== [SYSTEM] Initializing Phase 4 Stress Test. Catalog Size: 20 tracks. ===
 
-1. Library Rain - Score: 5.00
-Because: genre match (+3.0) | mood match (+2.0) | energy affinity match (-0.00 penalty)
+🚀 VIBEPULSE RECOMMENDER DISCOVERY DASHBOARD
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-2. Midnight Coding - Score: 4.72
-Because: genre match (+3.0) | mood match (+2.0) | energy affinity match (-0.28 penalty)
+=============================================================================================================================
+👤 PROFILE EXPERIMENT: High-Energy Workout
+   Criteria: Genre=pop | Mood=happy | Target Energy=0.95
+=============================================================================================================================
+Rank   | Song Title             | Artist             | Score   | Algorithmic Explanation / Audit Trail
+-----------------------------------------------------------------------------------------------------------------------------
+1.     | Sunrise City           | Neon Echo          | 4.48    | genre match (+3.0) | mood match (+2.0) | energy affinity match (-0.52 penalty)
+-----------------------------------------------------------------------------------------------------------------------------
+2.     | Gym Hero               | Max Pulse          | 2.92    | genre match (+3.0) | energy affinity match (-0.08 penalty)
+-----------------------------------------------------------------------------------------------------------------------------
+3.     | Electric Horizon       | Tokyo Glow         | 1.32    | mood match (+2.0) | energy drift deviation (-0.68 penalty)
+-----------------------------------------------------------------------------------------------------------------------------
 
-3. Focus Flow - Score: 2.80
-Because: genre match (+3.0) | energy affinity match (-0.20 penalty)
 
-4. Spacewalk Thoughts - Score: 1.72
-Because: mood match (+2.0) | energy affinity match (-0.28 penalty)
 
-5. Afro Beats & Chill - Score: 0.80
-Because: mood match (+2.0) | energy drift deviation (-1.20 penalty)
+=============================================================================================================================
+👤 PROFILE EXPERIMENT: Deep Intense Rock
+   Criteria: Genre=rock | Mood=intense | Target Energy=0.85
+=============================================================================================================================
+Rank   | Song Title             | Artist             | Score   | Algorithmic Explanation / Audit Trail
+-----------------------------------------------------------------------------------------------------------------------------
+1.     | Storm Runner           | Voltline           | 4.76    | genre match (+3.0) | mood match (+2.0) | energy affinity match (-0.24 penalty)
+-----------------------------------------------------------------------------------------------------------------------------
+2.     | Gym Hero               | Max Pulse          | 1.68    | mood match (+2.0) | energy affinity match (-0.32 penalty)
+-----------------------------------------------------------------------------------------------------------------------------
+3.     | Hyperdrive             | Synth Riot         | 1.60    | mood match (+2.0) | energy affinity match (-0.40 penalty)
+-----------------------------------------------------------------------------------------------------------------------------
+
+
+
+=============================================================================================================================
+👤 PROFILE EXPERIMENT: Adversarial / Conflicting Vibe
+   Criteria: Genre=lofi | Mood=sad | Target Energy=0.9
+=============================================================================================================================
+Rank   | Song Title             | Artist             | Score   | Algorithmic Explanation / Audit Trail
+-----------------------------------------------------------------------------------------------------------------------------
+1.     | Midnight Coding        | LoRoom             | 1.08    | genre match (+3.0) | energy drift deviation (-1.92 penalty)
+-----------------------------------------------------------------------------------------------------------------------------
+2.     | Library Rain           | Paper Lanterns     | 0.80    | genre match (+3.0) | energy drift deviation (-2.20 penalty)
+-----------------------------------------------------------------------------------------------------------------------------
+3.     | Storm Runner           | Voltline           | -0.04   | energy affinity match (-0.04 penalty)
+-----------------------------------------------------------------------------------------------------------------------------
 ```
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or demo video link here -->
@@ -127,9 +152,11 @@ Because: mood match (+2.0) | energy drift deviation (-1.20 penalty)
 
 Use this section to document the experiments you ran. For example:
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+- **Multi-Profile Stress Testing:** We evaluated the engine across highly divergent profiles, including a "High-Energy Workout" set and a "Deep Intense Rock" set. The model cleanly separated the selections, routing Storm Runner to the rock enthusiasts and Sunrise City to the workout queue based on discrete categorical intersections.
+
+- **The Adversarial Vibe Conflict:** We attempted to trick the model by configuring a profile with conflicting inputs: requesting a slow genre (lofi) but setting a hyper-intense target energy (0.90). The system exposed a core loop limitation, ranking slow lo-fi loops at the top of the feed anyway because the categorical genre match reward (+3.0) vastly out-voted the linear penalty applied to the acoustic energy drift.
+
+- **Active Fairness Intervention:** We injected a dynamic saturation script into the looping matrix. When Max Pulse attempted to claim two high ranking spots, the pipeline automatically slapped the second track with a -1.50 point penalty, cleanly diversifying the remaining real estate of the discovery grid.
 
 ---
 
@@ -139,9 +166,11 @@ Summarize some limitations of your recommender.
 
 Examples:
 
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
+- **Small Sample Constraints:** The catalog relies entirely on a flat memory database of 20 tracks, making it vulnerable to cold-start issues when an obscure genre combo is searched.
+
+- **Zero Lyric/Contextual Awareness:** The engine judges songs strictly by raw metadata tags. It cannot identify structural composition shifts, storytelling themes, or emotional vocal nuances.
+
+- **Categorical Dominance over Instrument Behavior:** Text matching heavily overpowers raw continuous audio variables, ensuring a song matching an explicit text label will routinely defeat an acoustic masterpiece with a different genre designation.
 
 You will go deeper on this in your model card.
 
@@ -155,8 +184,6 @@ Read and complete `model_card.md`:
 
 Write 1 to 2 paragraphs here about what you learned:
 
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
+- Building this simulator demystified the underlying mechanics of modern automated content delivery systems. It proved that recommendation engines are not intuitive curators—they are highly opinionated mathematical scoring weights that map complex human artistic expressions into rigid numerical cells. A simple calibration shift, like boosting a text multiplier too high, can instantly create a strict "filter bubble" that safely echoes a user's past habits while rendering outside subcultures completely invisible.
 
-
-
+- In a wider deployment context, these mathematical rules carry massive socio-economic implications. If a real-world platform's discovery system relies too heavily on strict categorical text labeling, it creates structural pipeline biases that penalize independent or experimental artists who cross genre boundaries. Working through this simulation highlighted why diversity and fairness logic must be intentionally written directly into a system's core ranking rules, rather than treated as an afterthought.

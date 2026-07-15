@@ -115,12 +115,12 @@ def score_song(user_prefs: Dict[str, Any], song: Dict[str, Any]) -> Tuple[float,
     # 1. Categorical Genre Match evaluation (Weight: +3.0)
     if song["genre"] == user_prefs["genre"].strip().lower():
         score += 3.0
-        reasons.append(f"genre match (+3.0)")
+        reasons.append("genre match (+3.0)")
 
     # 2. Categorical Mood Match evaluation (Weight: +2.0)
     if song["mood"] == user_prefs["mood"].strip().lower():
         score += 2.0
-        reasons.append(f"mood match (+2.0)")
+        reasons.append("mood match (+2.0)")
 
     # 3. Continuous Absolute Delta Proximity Penalty for Energy Alignment
     energy_delta = abs(song["energy"] - user_prefs["energy"])
@@ -139,17 +139,39 @@ def recommend_songs(
     songs: List[Dict[str, Any]],
     k: int = 5
 ) -> List[Tuple[Dict[str, Any], float, str]]:
-    """Functional implementation of the recommendation logic required by src/main.py."""
-    processed_recommendations: List[Tuple[Dict[str, Any], float, str]] = []
-    
+    """Functional implementation of recommendation logic with active Artist Diversity Penalties."""
+    # 1. Calculate pure content baseline scores first
+    raw_scored_pool: List[Tuple[Dict[str, Any], float, List[str]]] = []
     for song_dict in songs:
         score, reasons = score_song(user_prefs, song_dict)
-        explanation = " | ".join(reasons) if reasons else "baseline catalog"
-        processed_recommendations.append((song_dict, score, explanation))
+        raw_scored_pool.append((song_dict, score, list(reasons)))
+
+    # Sort primarily by their baseline scores to establish original strength
+    raw_scored_pool.sort(key=lambda x: x[1], reverse=True)
+
+    final_recommendations: List[Tuple[Dict[str, Any], float, str]] = []
+    seen_artists: Dict[str, int] = {}
+
+    # 2. Process recommendations while applying a dynamic fairness penalty
+    for song_dict, baseline_score, reasons in raw_scored_pool:
+        artist = song_dict["artist"].strip().lower()
         
-    # Non-destructive sorting paradigm using sorted()
+        # If the artist has already been selected, apply a structural penalty (-1.5 per extra song)
+        if artist in seen_artists:
+            seen_artists[artist] += 1
+            fairness_penalty = 1.50 * (seen_artists[artist] - 1)
+            adjusted_score = round(baseline_score - fairness_penalty, 2)
+            reasons.append(f"artist saturation penalty (-{fairness_penalty:.2f})")
+        else:
+            seen_artists[artist] = 1
+            adjusted_score = baseline_score
+
+        explanation = " | ".join(reasons) if reasons else "baseline catalog"
+        final_recommendations.append((song_dict, adjusted_score, explanation))
+
+    # 3. Re-sort the final list based on adjusted scores to preserve fairness
     sorted_recommendations: List[Tuple[Dict[str, Any], float, str]] = sorted(
-        processed_recommendations,
+        final_recommendations,
         key=lambda x: x[1],
         reverse=True,
     )
