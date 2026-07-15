@@ -1,4 +1,4 @@
-"""Command line runner for the Music Recommender Simulation Multi-Profile Evaluation."""
+"""Command line runner showcasing dynamic recommendation strategies."""
 
 from typing import Any, Dict
 from .recommender import load_songs, recommend_songs
@@ -6,50 +6,35 @@ from .recommender import load_songs, recommend_songs
 def main() -> None:
     csv_path = "data/songs.csv"
     songs = load_songs(csv_path) 
-    
-    print(f"=== [SYSTEM] Initializing Phase 4 Stress Test. Catalog Size: {len(songs)} tracks. ===\n")
+    print(f"=== [SYSTEM] Initializing Multi-Strategy System Test. Catalog Size: {len(songs)} tracks. ===\n")
 
-    print("🚀 VIBEPULSE RECOMMENDER DISCOVERY DASHBOARD")
-    print("~" * 125)
-    print()
-    
-    # Defining 3 distinct evaluation profiles (including an adversarial edge case)
-    test_profiles: Dict[str, Dict[str, Any]] = {
-        "High-Energy Workout": {
-            "genre": "pop",
-            "mood": "happy",
-            "energy": 0.95
-        },
-        "Deep Intense Rock": {
-            "genre": "rock",
-            "mood": "intense",
-            "energy": 0.85
-        },
-        "Adversarial / Conflicting Vibe": {
-            "genre": "lofi",
-            "mood": "sad",
-            "energy": 0.90  # Adversarial conflict: sad mood paired with hyper-intense energy
-        }
+    # Fixed preference base, adding likes_acoustic parameter
+    user_prefs: Dict[str, Any] = {
+        "genre": "pop",
+        "mood": "happy",
+        "energy": 0.95,
+        "likes_acoustic": False  # User wants purely synthesized/electronic pop elements
     }
 
-    for profile_name, prefs in test_profiles.items():
+    # Dynamic run modes
+    strategies = ["balanced", "acoustic", "strict_genre"]
+
+    for strategy in strategies:
         print("=" * 125)
-        print(f"👤 PROFILE EXPERIMENT: {profile_name}")
-        print(f"   Criteria: Genre={prefs['genre']} | Mood={prefs['mood']} | Target Energy={prefs['energy']}")
+        print(f"🚀 VIBEPULSE ENGINE STRATEGY: {strategy.upper()}")
+        print(f"   Listening Target: Genre={user_prefs['genre']} | Mood={user_prefs['mood']} | Target Energy={user_prefs['energy']}")
         print("=" * 125)
 
-        recommendations = recommend_songs(prefs, songs, k=3)
+        recommendations = recommend_songs(user_prefs, songs, k=3, strategy=strategy)
 
-        # Table Header Line
+        # Print Table Headers
         header = f"{'Rank'.ljust(6)} | {'Song Title'.ljust(22)} | {'Artist'.ljust(18)} | {'Score'.ljust(7)} | {'Algorithmic Explanation / Audit Trail'}"
         print(header)
         print("-" * 125)
 
-        # Grid Data Rows
+        # Print Rows
         for index, rec in enumerate(recommendations, start=1):
             song, score, explanation = rec
-            
-            # Truncate string overflows cleanly to preserve grid alignment boundaries
             title_txt = song['title'][:20] + ".." if len(song['title']) > 20 else song['title']
             artist_txt = song['artist'][:16] + ".." if len(song['artist']) > 16 else song['artist']
             
